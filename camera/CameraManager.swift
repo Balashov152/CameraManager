@@ -73,6 +73,9 @@ open class CameraManager: NSObject, AVCaptureFileOutputRecordingDelegate, UIGest
         }
     }
     
+    /// Property to determine if manager should device orentation. Default value is false.
+    open var shouldObservingDeviceOrientation = false
+    
     /// Property to determine if manager should horizontally flip image took by front camera. Default value is false.
     open var shouldFlipFrontCameraImage = false
     
@@ -880,7 +883,7 @@ open class CameraManager: NSObject, AVCaptureFileOutputRecordingDelegate, UIGest
     }
     
     fileprivate func _startFollowingDeviceOrientation() {
-        if shouldRespondToOrientationChanges && !cameraIsObservingDeviceOrientation {
+        if shouldRespondToOrientationChanges && !cameraIsObservingDeviceOrientation && shouldObservingDeviceOrientation {
             NotificationCenter.default.addObserver(self, selector: #selector(CameraManager._orientationChanged), name: NSNotification.Name.UIDeviceOrientationDidChange, object: nil)
             cameraIsObservingDeviceOrientation = true
         }
@@ -1179,6 +1182,9 @@ open class CameraManager: NSObject, AVCaptureFileOutputRecordingDelegate, UIGest
             for input in inputs {
                 if let deviceInput = input as? AVCaptureDeviceInput {
                     validCaptureSession.removeInput(deviceInput)
+                    if deviceInput.device != mic {
+                        validCaptureSession.removeInput(deviceInput)
+                    }
                 }
             }
             
