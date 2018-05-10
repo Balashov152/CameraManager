@@ -226,8 +226,10 @@ open class CameraManager: NSObject, AVCaptureFileOutputRecordingDelegate, UIGest
     fileprivate var beginZoomScale  = CGFloat(1.0)
     fileprivate var maxZoomScale    = CGFloat(1.0)
     
+    fileprivate let guidForURLTempFolder = "CameraManagerTempMovie"
+    
     fileprivate func _tempFilePath() -> URL {
-        let tempURL = URL(fileURLWithPath: NSTemporaryDirectory()).appendingPathComponent("tempMovie\(Date().timeIntervalSince1970)").appendingPathExtension("mp4")
+        let tempURL = URL(fileURLWithPath: NSTemporaryDirectory()).appendingPathComponent("\(guidForURLTempFolder)_\(Date().timeIntervalSince1970)").appendingPathExtension("mp4")
         return tempURL
     }
     
@@ -297,6 +299,23 @@ open class CameraManager: NSObject, AVCaptureFileOutputRecordingDelegate, UIGest
                 
             }
         })
+    }
+    
+    @discardableResult open func deleteCameraManagersFiles() -> Bool {
+        let fileManager = FileManager.default
+        let tempFolderPath = NSTemporaryDirectory()
+        do {
+            let filePaths = try fileManager.contentsOfDirectory(atPath: tempFolderPath)
+            for filePath in filePaths {
+                if filePath.contains(guidForURLTempFolder) {
+                    try fileManager.removeItem(atPath: tempFolderPath + filePath)
+                }
+            }
+            return true
+        } catch {
+            print("Could not clear temp folder: \(error)")
+            return false
+        }
     }
     
     /**
