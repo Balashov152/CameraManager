@@ -183,7 +183,7 @@ open class CameraManager: NSObject, AVCaptureFileOutputRecordingDelegate, UIGest
     }
     
     /// Property to check video recording duration when in progress
-    open var recordedDuration : CMTime { return movieOutput?.recordedDuration ?? kCMTimeZero }
+    open var recordedDuration : CMTime { return movieOutput?.recordedDuration ?? CMTime.zero }
     
     /// Property to check video recording file size when in progress
     open var recordedFileSize : Int64 { return movieOutput?.recordedFileSize ?? 0 }
@@ -755,7 +755,7 @@ open class CameraManager: NSObject, AVCaptureFileOutputRecordingDelegate, UIGest
         CATransaction.begin()
         
         CATransaction.setAnimationDuration(0.2)
-        CATransaction.setAnimationTimingFunction(CAMediaTimingFunction(name: kCAMediaTimingFunctionEaseOut))
+        CATransaction.setAnimationTimingFunction(CAMediaTimingFunction(name: CAMediaTimingFunctionName.easeOut))
         
         CATransaction.setCompletionBlock() {
             if shapeLayer.superlayer != nil {
@@ -778,7 +778,7 @@ open class CameraManager: NSObject, AVCaptureFileOutputRecordingDelegate, UIGest
         disappearOpacityAnimation.fromValue = 1.0
         disappearOpacityAnimation.toValue = 0.0
         disappearOpacityAnimation.beginTime = CACurrentMediaTime() + 0.8
-        disappearOpacityAnimation.fillMode = kCAFillModeForwards
+        disappearOpacityAnimation.fillMode = CAMediaTimingFillMode.forwards
         disappearOpacityAnimation.isRemovedOnCompletion = false
         shapeLayer.add(disappearOpacityAnimation, forKey: "opacity")
         
@@ -801,7 +801,7 @@ open class CameraManager: NSObject, AVCaptureFileOutputRecordingDelegate, UIGest
             return movieOutput
         }
         let newMoviewOutput = AVCaptureMovieFileOutput()
-        newMoviewOutput.movieFragmentInterval = kCMTimeInvalid
+        newMoviewOutput.movieFragmentInterval = CMTime.invalid
         movieOutput = newMoviewOutput
         if let captureSession = captureSession {
             if captureSession.canAddOutput(newMoviewOutput) {
@@ -903,14 +903,14 @@ open class CameraManager: NSObject, AVCaptureFileOutputRecordingDelegate, UIGest
     
     fileprivate func _startFollowingDeviceOrientation() {
         if shouldRespondToOrientationChanges && !cameraIsObservingDeviceOrientation && shouldObservingDeviceOrientation {
-            NotificationCenter.default.addObserver(self, selector: #selector(CameraManager._orientationChanged), name: NSNotification.Name.UIDeviceOrientationDidChange, object: nil)
+            NotificationCenter.default.addObserver(self, selector: #selector(CameraManager._orientationChanged), name: UIDevice.orientationDidChangeNotification, object: nil)
             cameraIsObservingDeviceOrientation = true
         }
     }
     
     fileprivate func _stopFollowingDeviceOrientation() {
         if cameraIsObservingDeviceOrientation {
-            NotificationCenter.default.removeObserver(self, name: NSNotification.Name.UIDeviceOrientationDidChange, object: nil)
+            NotificationCenter.default.removeObserver(self, name: UIDevice.orientationDidChangeNotification, object: nil)
             cameraIsObservingDeviceOrientation = false
         }
     }
@@ -943,7 +943,7 @@ open class CameraManager: NSObject, AVCaptureFileOutputRecordingDelegate, UIGest
     }
     
     fileprivate func _checkIfCameraIsAvailable() -> CameraState {
-        let deviceHasCamera = UIImagePickerController.isCameraDeviceAvailable(UIImagePickerControllerCameraDevice.rear) || UIImagePickerController.isCameraDeviceAvailable(UIImagePickerControllerCameraDevice.front)
+        let deviceHasCamera = UIImagePickerController.isCameraDeviceAvailable(UIImagePickerController.CameraDevice.rear) || UIImagePickerController.isCameraDeviceAvailable(UIImagePickerController.CameraDevice.front)
         if deviceHasCamera {
             let authorizationStatus = AVCaptureDevice.authorizationStatus(for: AVMediaType.video)
             let userAgreedToUseIt = authorizationStatus == .authorized
@@ -1019,7 +1019,7 @@ open class CameraManager: NSObject, AVCaptureFileOutputRecordingDelegate, UIGest
         }
         if (movieOutput == nil) {
             movieOutput = AVCaptureMovieFileOutput()
-            movieOutput?.movieFragmentInterval = kCMTimeInvalid
+            movieOutput?.movieFragmentInterval = CMTime.invalid
         }
         if library == nil {
             library = PHPhotoLibrary.shared()
@@ -1160,7 +1160,7 @@ open class CameraManager: NSObject, AVCaptureFileOutputRecordingDelegate, UIGest
             
             UIView.transition(with: cameraTransitionView,
                               duration: 0.5,
-                              options: UIViewAnimationOptions.transitionFlipFromLeft,
+                              options: UIView.AnimationOptions.transitionFlipFromLeft,
                               animations: nil,
                               completion: { (finished) -> Void in
                                 self._removeCameraTransistionView()
