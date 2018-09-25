@@ -96,7 +96,7 @@ class ViewController: UIViewController {
         
         switch (cameraManager.cameraOutputMode) {
         case .stillImage:
-            cameraManager.capturePictureWithCompletion({ (image, error) -> Void in
+            cameraManager.capturePictureImageWithCompletion({ (image, error) -> Void in
                 if let errorOccured = error {
                     self.cameraManager.showErrorBlock("Error occurred", errorOccured.localizedDescription)
                 }

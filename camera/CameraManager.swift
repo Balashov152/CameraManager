@@ -374,7 +374,8 @@ open class CameraManager: NSObject, AVCaptureFileOutputRecordingDelegate, UIGest
      
      :param: imageCompletion Completion block containing the captured UIImage
      */
-    open func capturePictureWithCompletion(_ imageCompletion: @escaping (UIImage?, NSError?) -> Void) {
+    open func capturePictureAssetWithCompletion(_ imageCompletion: @escaping (PHAsset?, NSError?) -> Void) {
+        
         self.capturePictureDataWithCompletion { data, error in
             
             guard error == nil, let imageData = data else {
@@ -392,42 +393,27 @@ open class CameraManager: NSObject, AVCaptureFileOutputRecordingDelegate, UIGest
         }
     }
     
-    fileprivate func _capturePicture(_ imageData: Data, _ imageCompletion: (UIImage?, NSError?) -> Void) {
-        guard let tempImage = UIImage(data: imageData) else {
-            imageCompletion(nil, NSError())
-            return
-        }
-        
-        let image: UIImage
-        if self.shouldFlipFrontCameraImage == true, self.cameraDevice == .front {
-            guard let cgImage = tempImage.cgImage else {
-                imageCompletion(nil, NSError())
+    /**
+     Captures still image from currently running capture session.
+     
+     :param: imageCompletion Completion block containing the captured UIImage
+     */
+    open func capturePictureImageWithCompletion(_ imageCompletion: @escaping (UIImage?, NSError?) -> Void) {
+        self.capturePictureDataWithCompletion { data, error in
+            
+            guard error == nil, let imageData = data else {
+                imageCompletion(nil, error)
                 return
             }
-            let flippedImage = UIImage(cgImage: cgImage, scale: tempImage.scale, orientation: .leftMirrored)
-            image = flippedImage
-        } else {
-            image = tempImage
-        }
-        
-        if self.writeFilesToPhoneLibrary == true, let library = self.library  {
-            library.performChanges({
-                let request = PHAssetChangeRequest.creationRequestForAsset(from: image)
-                request.creationDate = Date()
-                
-                if let location = self.locationManager?.latestLocation {
-                    request.location = location
+            
+            if self.animateShutter {
+                self._performShutterAnimation() {
+                    self._capturePicture(imageData, imageCompletion)
                 }
-            }, completionHandler: { success, error in
-                if let error = error {
-                    DispatchQueue.main.async(execute: {
-                        self._show(NSLocalizedString("Error", comment:""), message: error.localizedDescription)
-                    })
-                }
-            })
+            } else {
+                self._capturePicture(imageData, imageCompletion)
+            }
         }
-        
-        imageCompletion(image, nil)
     }
     
     /**
@@ -465,6 +451,99 @@ open class CameraManager: NSObject, AVCaptureFileOutputRecordingDelegate, UIGest
             })
         })
         
+    }
+    
+    fileprivate func _capturePicture(_ imageData: Data, _ imageCompletion: (UIImage?, NSError?) -> Void) {
+        guard let tempImage = UIImage(data: imageData) else {
+            imageCompletion(nil, NSError())
+            return
+        }
+        
+        let image: UIImage
+        if self.shouldFlipFrontCameraImage == true, self.cameraDevice == .front {
+            guard let cgImage = tempImage.cgImage else {
+                imageCompletion(nil, NSError())
+                return
+            }
+            let flippedImage = UIImage(cgImage: cgImage, scale: tempImage.scale, orientation: .leftMirrored)
+            image = flippedImage
+        } else {
+            image = tempImage
+        }
+        
+        if self.writeFilesToPhoneLibrary == true {
+            
+            _saveImageLibrary(image) { (assets, error) in
+                if let error = error {
+                    DispatchQueue.main.async(execute: {
+                        self._show(NSLocalizedString("Error", comment:""), message: error.localizedDescription)
+                    })
+                }
+            }
+        }
+        imageCompletion(image, nil)
+    }
+    
+    fileprivate func _capturePicture(_ imageData: Data, _ imageCompletion: @escaping (PHAsset?, NSError?) -> Void) {
+        guard let tempImage = UIImage(data: imageData) else {
+            imageCompletion(nil, NSError())
+            return
+        }
+        
+        let image: UIImage
+        if self.shouldFlipFrontCameraImage == true, self.cameraDevice == .front {
+            guard let cgImage = tempImage.cgImage else {
+                imageCompletion(nil, NSError())
+                return
+            }
+            let flippedImage = UIImage(cgImage: cgImage, scale: tempImage.scale, orientation: .leftMirrored)
+            image = flippedImage
+        } else {
+            image = tempImage
+        }
+        assert(writeFilesToPhoneLibrary == true, "only writeFilesToPhoneLibrary set to true")
+        if self.writeFilesToPhoneLibrary == true {
+            
+            _saveImageLibrary(image) { (asset, error) in
+                if let error = error {
+                    DispatchQueue.main.async(execute: {
+                        self._show(NSLocalizedString("Error", comment:""), message: error.localizedDescription)
+                    })
+                }
+                imageCompletion(asset, nil)
+            }
+        }
+        
+    }
+    
+    ///only is saved to photo library
+    fileprivate func _saveImageLibrary(_ image: UIImage, _ imageCompletion: @escaping (PHAsset?, NSError?) -> Void) {
+        if let library = self.library {
+
+                library.performChanges({
+                    let request = PHAssetChangeRequest.creationRequestForAsset(from: image)
+                    request.creationDate = Date()
+                    if let location = self.locationManager?.latestLocation {
+                        request.location = location
+                    }
+                    
+                }, completionHandler: { success, error in
+                    if let error = error {
+                        
+                        DispatchQueue.main.async(execute: {
+                            self._show(NSLocalizedString("Error", comment:""), message: error.localizedDescription)
+                        })
+                    }
+                    if success {
+                        let fetchOptions = PHFetchOptions()
+                        fetchOptions.sortDescriptors = [NSSortDescriptor(key: "creationDate", ascending: true)]
+                        // After uploading we fetch the PHAsset for most recent video and then get its current location url
+                        let imageAsset = PHAsset.fetchAssets(with: .image, options: fetchOptions).lastObject
+                        imageCompletion(imageAsset, nil)
+                    }
+                })
+        
+        }
     }
     
     /**
